@@ -1,0 +1,402 @@
+#???ð?
+library(limma)
+library(ggplot2)
+library(ggpubr)
+pFilter=0.001                      #pvalue????????
+riskFile="risk.all.txt"            #?????ļ?
+drugFile="DrugPredictions.csv"     #ҩ?????????ļ?
+setwd("F:\\YYYwork\\41.boxplot")     #???ù???Ŀ¼
+#??ȡ?????????ļ?
+risk=read.table(riskFile, header=T, sep="\t", check.names=F, row.names=1)
+#??ȡҩ?????????ļ?
+senstivity=read.csv(drugFile, header=T, sep=",", check.names=F, row.names=1)
+colnames(senstivity)=gsub("(.*)\\_(\\d+)", "\\1", colnames(senstivity))
+#???ݺϲ?
+sameSample=intersect(row.names(risk), row.names(senstivity))
+risk=risk[sameSample, "risk",drop=F]
+senstivity=senstivity[sameSample,,drop=F]
+rt=cbind(risk, senstivity)
+#???ñȽ???
+rt$risk=factor(rt$risk, levels=c("low", "high"))
+type=levels(factor(rt[,"risk"]))
+comp=combn(type, 2)
+my_comparisons=list()
+for(i in 1:ncol(comp)){my_comparisons[[i]]<-comp[,i]}
+#??ҩ??????ѭ??, ????????ͼ
+for(drug in colnames(rt)[2:ncol(rt)]){
+rt1=rt[,c(drug, "risk")]
+colnames(rt1)=c("Drug", "Risk")
+rt1=na.omit(rt1)
+rt1$Drug=log2(rt1$Drug+1)
+#????????
+test=wilcox.test(Drug ~ Risk, data=rt1)
+diffPvalue=test$p.value
+#????????????ҩ??????????ͼ
+if(diffPvalue<pFilter){
+boxplot=ggboxplot(rt1, x="Risk", y="Drug", fill="Risk",
+xlab="Risk",
+ylab=paste0(drug, " senstivity"),
+legend.title="Risk",
+palette=c("#0088FF", "#FF5555")
+)+
+stat_compare_means(comparisons=my_comparisons)
+#????ͼ??
+pdf(file=paste0("drugSenstivity.", drug, ".pdf"), width=5, height=4.5)
+print(boxplot)
+dev.off()
+}
+}
+######Video source: https://ke.biowolf.cn
+######??????ѧ??: https://www.biowolf.cn/
+######΢?Ź??ںţ?biowolf_cn
+######???????䣺biowolf@foxmail.com
+######????΢??: 18520221056
+######Video source: https://ke.biowolf.cn
+######??????ѧ??: https://www.biowolf.cn/
+######΢?Ź??ںţ?biowolf_cn
+######???????䣺biowolf@foxmail.com
+######????΢??: 18520221056
+#???ð?
+library(survival)
+library(survminer)
+library(ggDCA)
+riskFile="nomoRisk.txt"      #????ͼ?Ĵ????ļ?
+cliFile="clinical.txt"       #?ٴ??????ļ?
+setwd("F:\\YYYwork\\34.DCA")     #???ù???Ŀ¼
+#??ȡ?????????ļ?
+risk=read.table(riskFile, header=T, sep="\t", check.names=F, row.names=1)
+#??ȡ?ٴ??????ļ?
+cli=read.table(cliFile, header=T, sep="\t", check.names=F, row.names=1)
+cli=cli[apply(cli,1,function(x)any(is.na(match('unknow',x)))),,drop=F]
+cli$Age=as.numeric(cli$Age)
+#?ϲ?????
+samSample=intersect(row.names(risk), row.names(cli))
+risk1=risk[samSample,,drop=F]
+cli1=cli[samSample,,drop=F]
+data=cbind(risk1, cli1)
+#????ģ??
+rt=cbind(risk1[,c("futime","fustat","riskScore","Nomogram")], cli1)
+Nomogram<-coxph(Surv(futime,fustat)~Nomogram,rt)
+Risk<-coxph(Surv(futime,fustat)~riskScore,rt)
+Age<-coxph(Surv(futime,fustat)~Age, rt)
+Gender<-coxph(Surv(futime,fustat)~Gender, rt)
+T<-coxph(Surv(futime,fustat)~T, rt)
+N<-coxph(Surv(futime,fustat)~N, rt)
+#????1???ľ???????
+d_train1=dca(Nomogram, Risk, Age, Gender, T, N, times=1)
+#????3???ľ???????
+d_train3=dca(Nomogram, Risk, Age, Gender, T, N, times=3)
+dev.off()
+#????5???ľ???????
+d_train5=dca(Nomogram, Risk, Age, Gender, T, N, times=5)
+pdf(file="DCA5.pdf", width=6, height=5)
+ggplot(d_train5, linetype=1)
+dev.off()
+remotes::install_github('yikeshu0611/ggDCA')
+install.packages("devtools")
+install.packages("devtools")
+library(devtools)
+options(unzip='internal')
+devtools::install_github('yikeshu0611/ggDCA')
+#???ð?
+library(survival)
+library(survminer)
+library(ggDCA)
+riskFile="nomoRisk.txt"      #????ͼ?Ĵ????ļ?
+cliFile="clinical.txt"       #?ٴ??????ļ?
+setwd("F:\\YYYwork\\34.DCA")     #???ù???Ŀ¼
+#??ȡ?????????ļ?
+risk=read.table(riskFile, header=T, sep="\t", check.names=F, row.names=1)
+#??ȡ?ٴ??????ļ?
+cli=read.table(cliFile, header=T, sep="\t", check.names=F, row.names=1)
+cli=cli[apply(cli,1,function(x)any(is.na(match('unknow',x)))),,drop=F]
+cli$Age=as.numeric(cli$Age)
+#?ϲ?????
+samSample=intersect(row.names(risk), row.names(cli))
+risk1=risk[samSample,,drop=F]
+cli1=cli[samSample,,drop=F]
+data=cbind(risk1, cli1)
+#????ģ??
+rt=cbind(risk1[,c("futime","fustat","riskScore","Nomogram")], cli1)
+Nomogram<-coxph(Surv(futime,fustat)~Nomogram,rt)
+Risk<-coxph(Surv(futime,fustat)~riskScore,rt)
+Age<-coxph(Surv(futime,fustat)~Age, rt)
+Gender<-coxph(Surv(futime,fustat)~Gender, rt)
+T<-coxph(Surv(futime,fustat)~T, rt)
+N<-coxph(Surv(futime,fustat)~N, rt)
+#????1???ľ???????
+d_train1=dca(Nomogram, Risk, Age, Gender, T, N, times=1)
+pdf(file="DCA1.pdf", width=6, height=5)
+ggplot(d_train1, linetype=1)
+dev.off()
+#????3???ľ???????
+d_train3=dca(Nomogram, Risk, Age, Gender, T, N, times=3)
+pdf(file="DCA3.pdf", width=6, height=5)
+ggplot(d_train3, linetype=1)
+dev.off()
+#????5???ľ???????
+d_train5=dca(Nomogram, Risk, Age, Gender, T, N, times=5)
+pdf(file="DCA5.pdf", width=6, height=5)
+ggplot(d_train5, linetype=1)
+dev.off()
+######Video source: https://ke.biowolf.cn
+######Video source: https://ke.biowolf.cn
+######??????ѧ??: https://www.biowolf.cn/
+######Video source: https://ke.biowolf.cn
+######??????ѧ??: https://www.biowolf.cn/
+######΢?Ź??ںţ?biowolf_cn
+######Video source: https://ke.biowolf.cn
+######??????ѧ??: https://www.biowolf.cn/
+######΢?Ź??ںţ?biowolf_cn
+######???????䣺biowolf@foxmail.com
+#???ð?
+library(survival)
+library(survminer)
+library(ggDCA)
+install.packages("devtools")
+library(devtools)
+install.packages("devtools")
+library(devtools)
+options(unzip='internal')
+devtools::install_github('yikeshu0611/ggDCA')
+#???ð?
+library(survival)
+library(survminer)
+library(ggDCA)
+riskFile="nomoRisk.txt"      #????ͼ?Ĵ????ļ?
+riskFile="nomoRisk.txt"      #????ͼ?Ĵ????ļ?
+cliFile="clinical.txt"       #?ٴ??????ļ?
+setwd("D:\\YYYwork\\34.DCA")     #???ù???Ŀ¼
+#??ȡ?????????ļ?
+risk=read.table(riskFile, header=T, sep="\t", check.names=F, row.names=1)
+#??ȡ?ٴ??????ļ?
+cli=read.table(cliFile, header=T, sep="\t", check.names=F, row.names=1)
+cli=cli[apply(cli,1,function(x)any(is.na(match('unknow',x)))),,drop=F]
+cli$Age=as.numeric(cli$Age)
+#?ϲ?????
+samSample=intersect(row.names(risk), row.names(cli))
+risk1=risk[samSample,,drop=F]
+cli1=cli[samSample,,drop=F]
+data=cbind(risk1, cli1)
+#????ģ??
+rt=cbind(risk1[,c("futime","fustat","riskScore","Nomogram")], cli1)
+Nomogram<-coxph(Surv(futime,fustat)~Nomogram,rt)
+Risk<-coxph(Surv(futime,fustat)~riskScore,rt)
+Age<-coxph(Surv(futime,fustat)~Age, rt)
+Gender<-coxph(Surv(futime,fustat)~Gender, rt)
+T<-coxph(Surv(futime,fustat)~T, rt)
+N<-coxph(Surv(futime,fustat)~N, rt)
+#????1???ľ???????
+d_train1=dca(Nomogram, Risk, Age, Gender, T, N, times=1)
+pdf(file="DCA1.pdf", width=6, height=5)
+ggplot(d_train1, linetype=1)
+dev.off()
+#????3???ľ???????
+d_train3=dca(Nomogram, Risk, Age, Gender, T, N, times=3)
+pdf(file="DCA3.pdf", width=6, height=5)
+ggplot(d_train3, linetype=1)
+dev.off()
+#????5???ľ???????
+d_train5=dca(Nomogram, Risk, Age, Gender, T, N, times=5)
+pdf(file="DCA5.pdf", width=6, height=5)
+ggplot(d_train5, linetype=1)
+dev.off()
+#???ð?
+library(limma)
+library(pheatmap)
+library(ggpubr)
+library(vioplot)
+library(corrplot)
+immFile="CIBERSORT-Results.txt"     #????ϸ???????Ľ????ļ?
+riskFile="risk.all.txt"             #?????ļ?
+setwd("D:\\YYYwork\\36.immunePlot")     #???ù???Ŀ¼
+#??ȡ????ϸ???????Ľ????ļ??????????ݽ???????
+immune=read.table(immFile, header=T, sep="\t", check.names=F, row.names=1)
+immune=immune[immune[,"P-value"]<0.05,]
+data=as.matrix(immune[,1:(ncol(immune)-3)])
+rownames(data)=gsub("(.*?)\\_(.*?)", "\\2", rownames(data))
+#???ð?
+library(limma)
+library(pheatmap)
+library(ggpubr)
+library(vioplot)
+library(corrplot)
+immFile="CIBERSORT-Results.txt"     #????ϸ???????Ľ????ļ?
+riskFile="risk.all.txt"             #?????ļ?
+setwd("D:\\YYYwork\\36.immunePlot")     #???ù???Ŀ¼
+#??ȡ????ϸ???????Ľ????ļ??????????ݽ???????
+immune=read.table(immFile, header=T, sep="\t", check.names=F, row.names=1)
+immune=immune[immune[,"P-value"]<0.05,]
+data=as.matrix(immune[,1:(ncol(immune)-3)])
+#???ð?
+library(limma)
+library(pheatmap)
+library(ggpubr)
+library(vioplot)
+library(corrplot)
+immFile="CIBERSORT-Results.txt"     #????ϸ???????Ľ????ļ?
+#???ð?
+library(limma)
+library(pheatmap)
+library(ggpubr)
+library(vioplot)
+library(corrplot)
+immFile="CIBERSORT-Results.txt"     #????ϸ???????Ľ????ļ?
+riskFile="risk.all.txt"             #?????ļ?
+setwd("D:\\YYYwork\\36.immunePlot")     #???ù???Ŀ¼
+#??ȡ????ϸ???????Ľ????ļ??????????ݽ???????
+immune=read.table(immFile, header=T, sep="\t", check.names=F, row.names=1)
+immune=immune[immune[,"P-value"]<0.05,]
+data=as.matrix(immune[,1:(ncol(immune)-3)])
+rownames(data)=gsub("(.*?)\\_(.*?)", "\\2", rownames(data))
+#??ȡ?????ļ?
+risk=read.table(riskFile, header=T, sep="\t", check.names=F, row.names=1)
+lowSample=rownames(risk)[risk[,"risk"]=="low"]
+highSample=rownames(risk)[risk[,"risk"]=="high"]
+#?ߵͷ???????????ϸ????  
+lowSameSample=intersect(row.names(data), lowSample)
+highSameSample=intersect(row.names(data), highSample)
+data=t(data[c(lowSameSample,highSameSample),])
+conNum=length(lowSameSample)
+treatNum=length(highSameSample)
+##########??????״ͼ##########
+pdf("barplot.pdf", width=25, height=12)
+col=rainbow(nrow(data),s=0.7,v=0.7)
+par(las=1,mar=c(8,5,4,16),mgp=c(3,0.1,0),cex.axis=1.5)
+a1=barplot(data,col=col,ylab="Relative Percent",xaxt="n",yaxt="n",cex.lab=1.8)
+a2=axis(2,tick=F,labels=F)
+axis(2,a2,paste0(a2*100,"%"))
+par(srt=0,xpd=T)
+rect(xleft = a1[1], ybottom = -0.01, xright = a1[conNum], ytop = -0.06,col="green")
+text(a1[conNum]/2,-0.035,"Low risk",cex=2)
+rect(xleft = a1[conNum], ybottom = -0.01, xright =a1[length(a1)] , ytop = -0.06,col="red")
+text((a1[length(a1)]+a1[conNum])/2,-0.035,"High risk",cex=2)
+ytick2 = cumsum(data[,ncol(data)])
+ytick1 = c(0,ytick2[-length(ytick2)])
+legend(par('usr')[2]*0.98,par('usr')[4],legend=rownames(data),col=col,pch=15,bty="n",cex=1.3)
+dev.off()
+##########??????????ͼ??##########
+pdf(file="corHeatmap.pdf", width=11, height=11)
+par(oma=c(0.5,1,1,1.2))
+corData=t(data)
+corData=corData[,colMeans(corData)>0]
+M=cor(corData)
+corrplot(M,
+order="hclust",          #????ϸ??????????ʽ
+method = "color",        #ͼ??չʾ????ʽ
+diag = TRUE,             #?Ƿ?չʾ?Խ???
+tl.col="black",          #??????ɫ
+addCoef.col = "black",   #????ϵ??????????ɫ
+number.cex=0.75,         #????ϵ????????С
+col=colorRampPalette(c("blue", "white", "red"))(50))    #ͼ?ε???ɫ,?????غ?ɫ????????  ɫ
+dev.off()
+##########????С????ͼ##########
+rt=t(data)
+pdf("vioplot.pdf", height=8, width=12)
+par(las=1,mar=c(10,6,3,3))
+x=c(1:ncol(rt))
+y=c(1:ncol(rt))
+plot(x,y,
+xlim=c(0,63), ylim=c(min(rt), max(rt)+0.02),
+main="", xlab="", ylab="Fraction",
+pch=21,
+col="white",
+xaxt="n")
+#??ÿ??????ϸ??ѭ????????С????ͼ???ͷ???????ɫ??ʾ???߷????ú?ɫ??ʾ
+for(i in 1:ncol(rt)){
+if(sd(rt[1:conNum,i])==0){
+rt[1,i]=0.00001
+}
+if(sd(rt[(conNum+1):(conNum+treatNum),i])==0){
+rt[(conNum+1),i]=0.00001
+}
+lowData=rt[1:conNum,i]
+highData=rt[(conNum+1):(conNum+treatNum),i]
+vioplot(lowData,at=3*(i-1),lty=1,add = T,col = 'green')
+vioplot(highData,at=3*(i-1)+1,lty=1,add = T,col = 'red')
+wilcoxTest=wilcox.test(lowData, highData)
+p=wilcoxTest$p.value
+mx=max(c(lowData,highData))
+lines(c(x=3*(i-1)+0.2,x=3*(i-1)+0.8),c(mx,mx))
+text(x=3*(i-1)+0.5, y=mx+0.02, labels=ifelse(p<0.001, paste0("p<0.001"), paste0("p=",sprintf("%.03f",p))), cex = 0.8)
+}
+legend("topleft",
+c("Low risk", "High risk"),
+lwd=3.5, bty="n", cex=1.2,
+col=c("green","red"))
+text(seq(1,64,3),-0.05,xpd = NA,labels=colnames(rt),cex = 0.9,srt = 45,pos=2)
+dev.off()
+#???ð?
+library(limma)
+library(reshape2)
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+library(ggExtra)
+immFile="CIBERSORT-Results.txt"     #????ϸ???????Ľ????ļ?
+immFile="CIBERSORT-Results.txt"     #????ϸ???????Ľ????ļ?
+riskFile="risk.all.txt"             #?????ļ?
+setwd("D:\\YYYwork\\37.immuneCor")     #???ù???Ŀ¼
+#??ȡ????ϸ???????Ľ????ļ??????????ݽ???????
+immune=read.table(immFile, header=T, sep="\t", check.names=F, row.names=1)
+immune=immune[immune[,"P-value"]<0.05,]
+data=as.matrix(immune[,1:(ncol(immune)-3)])
+rownames(data)=gsub("(.*?)\\_(.*?)", "\\2", rownames(data))
+#??ȡ?????ļ?
+risk=read.table(riskFile, header=T, sep="\t", check.names=F, row.names=1)
+sameSample=intersect(row.names(data), row.names(risk))
+data=data[sameSample,,drop=F]
+risk=risk[sameSample,,drop=F]
+#??????????ϸ??????ѭ?????õ????մ?????????ϸ??????????
+for(i in colnames(data)[1:ncol(data)]){
+x=as.numeric(risk[,"riskScore"])
+x[x>quantile(x,0.99)]=quantile(x,0.99)
+y=as.numeric(data[,i])
+if(sd(y)<0.01){next}
+cor=cor.test(x, y, method="spearman")
+#??pvalueС??0.05??????ϸ????????????ɢ??ͼ?Ļ???
+if(cor$p.value<0.05){
+outFile=paste0("cor.", i, ".pdf")
+df1=as.data.frame(cbind(x,y))
+p1=ggplot(df1, aes(x, y)) +
+xlab("Risk score") + ylab(i)+
+geom_point() + geom_smooth(method="lm",formula = y ~ x) + theme_bw()+
+stat_cor(method = 'spearman', aes(x =x, y =y))
+p2=ggMarginal(p1, type="density", xparams=list(fill="orange"), yparams=list(fill="green"))
+#??????ͼ??
+pdf(file=outFile, width=5.2, height=5)
+print(p2)
+dev.off()
+}
+}
+#??????????????ϸ???????Է???
+outTab=data.frame()
+risk=risk[,3:(ncol(risk)-1),drop=F]
+for(immune in colnames(data)){
+if(sd(data[,immune])<0.01){next}
+for(gene in colnames(risk)){
+x=as.numeric(data[,immune])
+y=as.numeric(risk[,gene])
+y[y>quantile(y,0.99)]=quantile(y,0.99)
+corT=cor.test(x,y,method="spearman")
+cor=corT$estimate
+pvalue=corT$p.value
+text=ifelse(pvalue<0.001,"***",ifelse(pvalue<0.01,"**",ifelse(pvalue<0.05,"*","")))
+outTab=rbind(outTab,cbind(Gene=gene, Immune=immune, cor, text, pvalue))
+}
+}
+#????????????ͼ
+outTab$cor=as.numeric(outTab$cor)
+outTab[,"Gene"]=factor(outTab[,"Gene"], levels=colnames(risk))
+pdf(file="geneImmuneCor.pdf", width=7, height=5)
+ggplot(outTab, aes(Gene, Immune)) +
+geom_tile(aes(fill = cor), colour = "grey", size = 1)+
+scale_fill_gradient2(low = "#5C5DAF", mid = "white", high = "#EA2E2D") +
+geom_text(aes(label=text),col ="black",size = 3) +
+theme_minimal() +
+theme(axis.title.x=element_blank(), axis.ticks.x=element_blank(), axis.title.y=element_blank(),
+axis.text.x = element_text(angle = 45, hjust = 1, size = 9, face = "bold"),   #x??????
+axis.text.y = element_text(size = 9, face = "bold")) +       #y??????
+labs(fill =paste0("***  p<0.001","\n", "**  p<0.01","\n", " *  p<0.05","\n", "\n","Correlation")) +   #????ͼ??
+scale_x_discrete(position = "bottom")      #X????????????ʾ??ͼ?ε??·?
+dev.off()
